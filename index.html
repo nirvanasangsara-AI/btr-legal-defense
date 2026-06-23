@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>BTR 법적대응 관리시스템</title>
+<style>
+:root{
+  --bg:#0d1117;--side:#161b22;--border:#30363d;--accent:#1f6feb;
+  --accent2:#388bfd;--text:#e6edf3;--muted:#8b949e;--green:#3fb950;
+  --red:#f85149;--yellow:#d29922;--purple:#a371f7;--orange:#fb8500;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Apple SD Gothic Neo','-apple-system','Segoe UI',sans-serif;
+  background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden}
+
+/* 사이드바 */
+#sidebar{width:250px;min-width:250px;background:var(--side);
+  border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+#sidebar-header{padding:14px 16px;border-bottom:1px solid var(--border)}
+#sidebar-header h1{font-size:14px;font-weight:700;line-height:1.4}
+#sidebar-header p{font-size:11px;color:var(--muted);margin-top:3px}
+#nav{flex:1;overflow-y:auto;padding:6px 0}
+.nav-section{padding:8px 14px 3px;font-size:10px;font-weight:700;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.nav-item{display:flex;align-items:center;gap:8px;padding:6px 16px;
+  cursor:pointer;font-size:13px;color:var(--muted);
+  border-left:2px solid transparent;transition:.15s;user-select:none}
+.nav-item:hover{color:var(--text);background:#ffffff08}
+.nav-item.active{color:var(--accent2);border-left-color:var(--accent2);background:#1f6feb18}
+.nav-item .ico{font-size:14px;width:18px;text-align:center}
+.nav-item .badge{margin-left:auto;font-size:10px;padding:1px 6px;
+  border-radius:8px;background:#21262d;color:var(--muted)}
+.nav-item .badge.red{background:#3d1212;color:var(--red)}
+.nav-item .badge.yellow{background:#2d2200;color:var(--yellow)}
+.nav-item .badge.green{background:#12261e;color:var(--green)}
+/* 프로젝트 토글 */
+.proj-toggle{padding:4px 10px 2px 14px;display:flex;align-items:center;
+  gap:6px;cursor:pointer;user-select:none;font-size:12px;color:var(--muted);font-weight:600}
+.proj-toggle:hover{color:var(--text)}
+.proj-toggle .arrow{font-size:10px;transition:.2s}
+.proj-toggle.open .arrow{transform:rotate(90deg)}
+.proj-children{display:none;padding-left:12px}
+.proj-children.open{display:block}
+.status-bar{padding:10px 14px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)}
+.status-row{display:flex;justify-content:space-between;margin-bottom:3px}
+
+/* 메인 */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#topbar{padding:10px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;background:var(--side)}
+#page-title{font-size:15px;font-weight:700;flex:1}
+#search-wrap{display:flex;gap:6px}
+#search-wrap input{background:#0d1117;border:1px solid var(--border);color:var(--text);
+  padding:5px 10px;border-radius:6px;font-size:13px;width:200px;outline:none}
+#search-wrap input:focus{border-color:var(--accent)}
+#search-wrap button{background:var(--accent);color:#fff;border:none;
+  padding:5px 12px;border-radius:6px;font-size:13px;cursor:pointer}
+
+#content{flex:1;overflow-y:auto;padding:18px 22px}
+.page{display:none}.page.active{display:block}
+
+/* 카드 */
+.card{background:var(--side);border:1px solid var(--border);
+  border-radius:8px;padding:16px;margin-bottom:14px}
+.card h2{font-size:14px;font-weight:700;margin-bottom:12px}
+.overview-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.stat-card{background:var(--side);border:1px solid var(--border);border-radius:8px;padding:14px}
+.stat-card h3{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:6px}
+.stat-card .val{font-size:26px;font-weight:700;line-height:1}
+.stat-card .sub{font-size:11px;color:var(--muted);margin-top:3px}
+.stat-card.red .val{color:var(--red)}
+.stat-card.yellow .val{color:var(--yellow)}
+.stat-card.blue .val{color:var(--accent2)}
+.stat-card.orange .val{color:var(--orange)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{padding:6px 8px;border-bottom:1px solid #21262d;text-align:left}
+th{font-size:11px;color:var(--muted);font-weight:700;background:#21262d}
+
+/* 타임라인 */
+.tl{position:relative;padding-left:28px}
+.tl::before{content:'';position:absolute;left:8px;top:0;bottom:0;
+  width:2px;background:var(--border)}
+.tl-item{position:relative;margin-bottom:18px}
+.tl-dot{position:absolute;left:-24px;top:4px;width:10px;height:10px;
+  border-radius:50%;border:2px solid var(--accent);background:var(--bg)}
+.tl-item.done .tl-dot{background:var(--green);border-color:var(--green)}
+.tl-item.current .tl-dot{background:var(--yellow);border-color:var(--yellow);
+  box-shadow:0 0 8px var(--yellow)}
+.tl-item.future .tl-dot{border-color:var(--muted)}
+.tl-date{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:2px}
+.tl-title{font-size:14px;font-weight:700;margin-bottom:5px}
+.tl-body{font-size:13px;color:#adb5bd;line-height:1.6}
+.tl-body ul{margin:5px 0 0 16px}
+.tl-body li{margin-bottom:3px}
+.tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.tag{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+.tag.red{background:#3d1212;color:var(--red)}
+.tag.green{background:#12261e;color:var(--green)}
+.tag.blue{background:#1f3250;color:var(--accent2)}
+.tag.yellow{background:#2d2200;color:var(--yellow)}
+.tag.purple{background:#2d1f42;color:var(--purple)}
+
+/* 공판 카드 */
+.hearing-card{background:var(--side);border:1px solid var(--border);
+  border-radius:8px;margin-bottom:12px;overflow:hidden}
+.h-header{padding:12px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+.h-header:hover{background:#ffffff06}
+.h-num{font-size:11px;font-weight:700;padding:2px 10px;border-radius:10px;
+  background:var(--accent);color:#fff;flex-shrink:0}
+.h-date{font-size:12px;color:var(--muted);flex-shrink:0}
+.h-title{font-size:13px;font-weight:700;flex:1}
+.h-tog{color:var(--muted);font-size:16px;transition:.2s;flex-shrink:0}
+.h-body{max-height:0;overflow:hidden;transition:max-height .3s}
+.h-body.open{max-height:3000px;padding:14px 16px}
+.h-body h4{font-size:11px;color:var(--muted);text-transform:uppercase;
+  font-weight:700;letter-spacing:.06em;margin:12px 0 6px;border-top:1px solid #21262d;padding-top:8px}
+.h-body h4:first-child{margin-top:0;border-top:none;padding-top:0}
+.h-body ul{list-style:none}
+.h-body li{font-size:13px;color:#adb5bd;padding:3px 0;
+  border-bottom:1px solid #21262d;display:flex;gap:8px}
+.h-body li::before{content:'▸';color:var(--accent2);flex-shrink:0}
+
+/* 문서 뷰어 */
+#doc-viewer-overlay{display:none;position:fixed;inset:0;background:#000c;
+  z-index:9999;align-items:center;justify-content:center;flex-direction:column}
+#doc-viewer-overlay.open{display:flex}
+#doc-viewer-box{background:#1e2128;border:1px solid var(--border);border-radius:10px;
+  width:90vw;max-width:1000px;height:90vh;display:flex;flex-direction:column;overflow:hidden}
+#doc-viewer-header{padding:10px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px}
+#doc-viewer-title{font-size:14px;font-weight:700;flex:1}
+#doc-viewer-dl{background:var(--accent);color:#fff;border:none;padding:5px 12px;
+  border-radius:6px;font-size:12px;cursor:pointer;text-decoration:none}
+#doc-viewer-close{background:#3d1212;color:var(--red);border:none;
+  padding:5px 12px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:700}
+#doc-viewer-frame{flex:1;width:100%;border:none;background:#fff}
+#doc-viewer-txt{flex:1;overflow-y:auto;padding:16px;font-size:13px;
+  line-height:1.7;color:#e6edf3;white-space:pre-wrap;font-family:monospace;
+  display:none}
+
+/* 문서 그리드 */
+.doc-filter{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.doc-filter button{background:#21262d;color:var(--muted);border:1px solid var(--border);
+  padding:3px 10px;border-radius:14px;font-size:12px;cursor:pointer;transition:.15s}
+.doc-filter button.active,.doc-filter button:hover{background:var(--accent);
+  color:#fff;border-color:var(--accent)}
+.doc-list{display:flex;flex-direction:column;gap:3px}
+.doc-item{background:var(--side);border:1px solid var(--border);border-radius:6px;
+  padding:9px 13px;display:flex;align-items:center;gap:8px;cursor:pointer;transition:.15s}
+.doc-item:hover{border-color:var(--accent2);background:#1f6feb10}
+.doc-icon{font-size:16px;width:22px;text-align:center;flex-shrink:0}
+.doc-name{flex:1;font-size:13px;font-weight:500}
+.doc-meta{font-size:11px;color:var(--muted);text-align:right;flex-shrink:0}
+.doc-badge{font-size:10px;padding:1px 7px;border-radius:8px;font-weight:600;flex-shrink:0}
+.db-civil{background:#12261e;color:var(--green)}
+.db-criminal{background:#3d1212;color:var(--red)}
+.db-ref{background:#1f3250;color:var(--accent2)}
+
+/* 인물 */
+.person-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.person-card{background:var(--side);border:1px solid var(--border);
+  border-radius:8px;padding:12px}
+.person-card h3{font-size:13px;font-weight:700;margin-bottom:3px}
+.person-card .role{font-size:11px;color:var(--muted);margin-bottom:8px}
+.person-card ul{list-style:none}
+.person-card li{font-size:12px;color:#adb5bd;padding:2px 0;
+  border-bottom:1px solid #21262d}
+.person-card li:last-child{border:none}
+
+/* 검색결과 */
+.sr{display:none}.sr.active{display:block}
+.sr-item{background:var(--side);border:1px solid var(--border);border-radius:6px;
+  padding:10px 14px;margin-bottom:6px;cursor:pointer}
+.sr-item:hover{border-color:var(--accent2)}
+.sr-item h4{font-size:13px;font-weight:700;margin-bottom:3px}
+.sr-item p{font-size:12px;color:var(--muted)}
+mark{background:#2d3b00;color:var(--yellow);border-radius:2px;padding:0 2px}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-thumb{background:#30363d;border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- PDF/TXT 뷰어 오버레이 -->
+<div id="doc-viewer-overlay" onclick="closeViewer(event)">
+  <div id="doc-viewer-box">
+    <div id="doc-viewer-header">
+      <span id="doc-viewer-title">문서</span>
+      <a id="doc-viewer-dl" href="#" download>⬇ 다운로드</a>
+      <button id="doc-viewer-close" onclick="closeViewerBtn()">✕ 닫기</button>
+    </div>
+    <iframe id="doc-viewer-frame" src=""></iframe>
+    <pre id="doc-viewer-txt"></pre>
+  </div>
+</div>
+
+<div id="sidebar">
+  <div id="sidebar-header">
+    <h1>⚖️ BTR 법적대응<br>관리시스템</h1>
+    <p>BTR 수성 엘리베이터</p>
+  </div>
+  <div id="nav">
+    <div class="nav-section">전체</div>
+    <div class="nav-item active" onclick="showPage('home',this)">
+      <span class="ico">🏠</span> 홈
+    </div>
+
+    <!-- 신금성 프로젝트 -->
+    <div class="nav-section">프로젝트</div>
+    <div class="proj-toggle open" onclick="toggleProj(this)">
+      <span class="arrow">▶</span>
+      <span style="color:var(--red)">🔴 신금성 (2026고단237)</span>
+    </div>
+    <div class="proj-children open">
+      <div class="nav-item" onclick="showPage('sg-overview',this)">
+        <span class="ico">📊</span> 사건 개요
+      </div>
+      <div class="nav-item" onclick="showPage('sg-timeline',this)">
+        <span class="ico">📅</span> 시계열
+      </div>
+      <div class="nav-item" onclick="showPage('sg-hearings',this)">
+        <span class="ico">🏛</span> 공판 기록
+        <span class="badge yellow">4차</span>
+      </div>
+      <div class="nav-item" onclick="showPage('sg-docs',this)">
+        <span class="ico">📂</span> 문서함
+      </div>
+      <div class="nav-item" onclick="showPage('sg-persons',this)">
+        <span class="ico">👥</span> 관계자
+      </div>
+      <div class="nav-item" onclick="showPage('sg-strategy',this)">
+        <span class="ico">⚡</span> 전략 메모
+      </div>
+    </div>
+
+    <div class="nav-section">도구</div>
+    <div class="nav-item" onclick="showPage('search-page',this)">
+      <span class="ico">🔍</span> 전체 검색
+    </div>
+  </div>
+  <div class="status-bar">
+    <div class="status-row">
+      <span>피해액</span><span style="color:var(--red);font-weight:700">3.45억</span>
+    </div>
+    <div class="status-row">
+      <span>선고일</span><span style="color:var(--yellow);font-weight:700">2026.08.13</span>
+    </div>
+    <div class="status-row">
+      <span>구형</span><span style="color:var(--orange);font-weight:700">징역 1년 6월</span>
+    </div>
+  </div>
+</div>
+
+<div id="main">
+  <div id="topbar">
+    <div id="page-title">홈</div>
+    <div id="search-wrap">
+      <input type="text" id="sInput" placeholder="검색..." onkeydown="if(event.key==='Enter')doSearch()">
+      <button onclick="doSearch()">검색</button>
+    </div>
+  </div>
+  <div id="content">
+
+    <!-- 홈 -->
+    <div id="page-home" class="page active">
+      <div class="card">
+        <h2>⚖️ BTR 법적대응 관리시스템</h2>
+        <p style="font-size:13px;color:#adb5bd;line-height:1.7">BTR 수성의 법적 분쟁·소송 관련 자료를 체계적으로 보관·조회하는 시스템입니다.<br>
+        왼쪽 메뉴에서 프로젝트를 선택하고, 공판 기록·문서·전략 메모를 확인하세요.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr;gap:10px">
+        <div class="card" style="cursor:pointer;border-color:var(--red)" onclick="showPage('sg-overview',null)">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:24px">🔴</span>
+            <div>
+              <div style="font-size:14px;font-weight:700">신금성 (조용래) — 2026고단237</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:3px">피해액 3.45억 · 4차 공판 완료 · 선고 2026.08.13</div>
+            </div>
+            <span style="margin-left:auto;background:#3d1212;color:var(--red);font-size:11px;padding:2px 10px;border-radius:10px;font-weight:700">진행중</span>
+          </div>
+        </div>
+        <div class="card" style="opacity:.5;border-style:dashed">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:24px">⬜</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--muted)">추가 사건 (예정)</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:3px">미수금 업체 5~10개 추가 예정</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 신금성 개요 -->
+    <div id="page-sg-overview" class="page">
+      <div class="overview-grid">
+        <div class="stat-card red"><h3>BTR 피해액</h3><div class="val">3.45억</div><div class="sub">추가 5~10개 업체</div></div>
+        <div class="stat-card yellow"><h3>선고 예정</h3><div class="val">08.13</div><div class="sub">2026년 수 14:00</div></div>
+        <div class="stat-card blue"><h3>공판 진행</h3><div class="val">4/4차</div><div class="sub">4차 완료 (2026.06.24)</div></div>
+        <div class="stat-card orange"><h3>검사 구형</h3><div class="val">1년6월</div><div class="sub">징역</div></div>
+      </div>
+      <div class="card">
+        <h2>📌 사건 기본 정보</h2>
+        <table>
+          <tr><td style="color:var(--muted);width:130px">사건번호</td><td>2026고단237</td></tr>
+          <tr><td style="color:var(--muted)">피고인</td><td>조용래 (신금성엘리베이터 대표이사, 1972.06.17)</td></tr>
+          <tr><td style="color:var(--muted)">혐의</td><td>사기 + 채무자회생법 652조 2호 위반</td></tr>
+          <tr><td style="color:var(--muted)">BTR 측 변호사</td><td>천동준 변호사</td></tr>
+          <tr><td style="color:var(--muted)">파산선고일</td><td>2024.11.28</td></tr>
+          <tr><td style="color:var(--muted)">범행기간</td><td>2023.01.31 ~ 2024.01.17</td></tr>
+        </table>
+      </div>
+      <div style="background:#1a1200;border:1px solid var(--yellow);border-radius:8px;padding:14px;margin-bottom:12px">
+        <h3 style="font-size:13px;font-weight:700;color:var(--yellow);margin-bottom:8px">⚡ 4차 공판 결과 (2026.06.24 오늘)</h3>
+        <ul style="list-style:none;font-size:13px;color:#adb5bd">
+          <li style="padding:3px 0">▸ 이상원 회계사 증인 — 재무제표 적법, 허위기재 요구 없음</li>
+          <li style="padding:3px 0">▸ 공소장 변경 허가 — 652조 2호 확정</li>
+          <li style="padding:3px 0">▸ 검사 구형: <strong style="color:var(--red)">징역 1년 6개월</strong></li>
+          <li style="padding:3px 0">▸ 선고: <strong style="color:var(--yellow)">2026.08.13 (수) 14:00</strong></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>🔑 핵심 쟁점</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div style="background:#0d1117;border-radius:6px;padding:10px;border:1px solid var(--border)">
+            <div style="font-size:10px;color:var(--red);font-weight:700;margin-bottom:4px">① 파산 후 발주 계속</div>
+            <div style="font-size:12px;color:#adb5bd">2023.12.27 파산결의 후에도 도남동 자택 엘리베이터 발주 (24.01.17까지)</div>
+          </div>
+          <div style="background:#0d1117;border-radius:6px;padding:10px;border:1px solid var(--border)">
+            <div style="font-size:10px;color:var(--yellow);font-weight:700;margin-bottom:4px">② 652조 — 완료</div>
+            <div style="font-size:12px;color:#adb5bd">공소장 변경 허가. 법인 대표이사 처벌 근거 확보.</div>
+          </div>
+          <div style="background:#0d1117;border-radius:6px;padding:10px;border:1px solid var(--border)">
+            <div style="font-size:10px;color:var(--purple);font-weight:700;margin-bottom:4px">③ 창성 편파행위</div>
+            <div style="font-size:12px;color:#adb5bd">인력 26명+설비 이전. 며느리 김해선 명의. 엠티케이 1.25억.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 시계열 -->
+    <div id="page-sg-timeline" class="page">
+      <div class="tl">
+        <div class="tl-item done"><div class="tl-dot"></div>
+          <div class="tl-date">2019~2022</div>
+          <div class="tl-title">신금성 성장기 — 관급공사 확장</div>
+          <div class="tl-body">청양 공장 신축. 코로나 팬데믹 이전 사업 확장.</div>
+        </div>
+        <div class="tl-item done"><div class="tl-dot"></div>
+          <div class="tl-date">2022년</div>
+          <div class="tl-title">팬데믹 원자재 급등 → 실질 6억 손실</div>
+          <div class="tl-body"><ul>
+            <li>철강재·부품 원가 급등, 관급공사 단가 고정</li>
+            <li>재무제표: 이상원 회계사 기장 → 1억5천 흑자 (회계기준 적법)</li>
+            <li>실제 계좌: 출금초과 6.3억 (현금흐름 기준)</li>
+          </ul></div>
+          <div class="tags"><span class="tag yellow">핵심 쟁점</span><span class="tag red">재무제표 논란</span></div>
+        </div>
+        <div class="tl-item done"><div class="tl-dot"></div>
+          <div class="tl-date">2023.01.31 ~ 2024.01.17</div>
+          <div class="tl-title">【범행기간】 BTR 수성 피해 발생</div>
+          <div class="tl-body"><ul>
+            <li>변제능력 없이 계속 발주·납품 미결제</li>
+            <li>총 피해: 약 3.45억 (BTR 기준)</li>
+          </ul></div>
+          <div class="tags"><span class="tag red">사기</span></div>
+        </div>
+        <div class="tl-item done"><div class="tl-dot"></div>
+          <div class="tl-date">2023년</div>
+          <div class="tl-title">2023년 재무제표: 19억 적자 확정</div>
+          <div class="tl-body">2022년 계약 공사 완결 → 손실 확정.</div>
+        </div>
+        <div class="tl-item done"><div class="tl-dot"></div>
+          <div class="tl-date">2023.12.27</div>
+          <div class="tl-title">파산결의 → 이후에도 발주 계속</div>
+          <div class="tl-body">도남동 자택 엘리베이터 발주 계속 (24.01.17까지)</div>
+          <div class="tags"><span class="tag red">핵심 공격</span></div>
+        </div>
+        <div class="tl-item done"><div class="tl-dot"></div>
+          <div class="tl-date">2024.11.28</div>
+          <div class="tl-title">파산선고 결정 확정</div>
+        </div>
+        <div class="tl-item done"><div class="tl-dot"></div>
+          <div class="tl-date">2025.12.30</div>
+          <div class="tl-title">수사결과 통지서 (2025-00186호)</div>
+        </div>
+        <div class="tl-item done"><div class="tl-dot"></div>
+          <div class="tl-date">2026.01.29</div>
+          <div class="tl-title">불구속구공판 통지서 (2026년형746호)</div>
+        </div>
+        <div class="tl-item done"><div class="tl-dot"></div>
+          <div class="tl-date">2026.03.10 (화)</div>
+          <div class="tl-title">1차 공판</div>
+          <div class="tl-body">피고인 인적사항. 사실관계 인정, 사기 고의 부인. 이상원 회계사 증인 신청.</div>
+          <div class="tags"><span class="tag green">완료</span></div>
+        </div>
+        <div class="tl-item done"><div class="tl-dot"></div>
+          <div class="tl-date">2026.04.09 (화)</div>
+          <div class="tl-title">2차 공판</div>
+          <div class="tl-body">재판장 직접 652조 누락 지적. 공소장 변경 논의 시작.</div>
+          <div class="tags"><span class="tag green">완료</span><span class="tag yellow">652조</span></div>
+        </div>
+        <div class="tl-item done"><div class="tl-dot"></div>
+          <div class="tl-date">2026.05.12 (화)</div>
+          <div class="tl-title">3차 공판 — 김준석 증인신문</div>
+          <div class="tl-body">BTR 김준석 증인 출석. 엘리베이터 설치공사 수익인식 시점 증언.</div>
+          <div class="tags"><span class="tag green">완료</span></div>
+        </div>
+        <div class="tl-item current"><div class="tl-dot"></div>
+          <div class="tl-date">2026.06.24 (화) — 오늘</div>
+          <div class="tl-title">4차 공판 — 구형 완료</div>
+          <div class="tl-body"><ul>
+            <li>이상원 회계사 증인신문</li>
+            <li>공소장 변경 허가 — 652조 2호</li>
+            <li>검사 구형: 징역 1년 6개월</li>
+            <li>변호인 최후 변론 · 피고인 최후 진술</li>
+          </ul></div>
+          <div class="tags"><span class="tag yellow">TODAY</span><span class="tag red">구형 1년6월</span></div>
+        </div>
+        <div class="tl-item future"><div class="tl-dot"></div>
+          <div class="tl-date">2026.07 (예정)</div>
+          <div class="tl-title">피해자 측 추가 의견서 제출</div>
+          <div class="tags"><span class="tag blue">예정</span></div>
+        </div>
+        <div class="tl-item future"><div class="tl-dot"></div>
+          <div class="tl-date">2026.08.13 (수) 14:00</div>
+          <div class="tl-title">판결 선고</div>
+          <div class="tl-body">대구지방법원. 구형: 징역 1년 6개월. 피고인 측 공탁 노력 중.</div>
+          <div class="tags"><span class="tag red">D-Day</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 공판 기록 -->
+    <div id="page-sg-hearings" class="page">
+
+      <div class="hearing-card">
+        <div class="h-header" onclick="toggleH(this)">
+          <span class="h-num" style="background:var(--yellow);color:#000">4차</span>
+          <span class="h-date">2026.06.24</span>
+          <span class="h-title">이상원 증인 · 공소장변경 · 구형</span>
+          <div class="tags" style="flex:none"><span class="tag yellow">TODAY</span><span class="tag red">1년6월</span></div>
+          <span class="h-tog">▼</span>
+        </div>
+        <div class="h-body open">
+          <h4>이상원 회계사 증인신문</h4>
+          <ul>
+            <li>채용회계법인 이사. 2022.08부터 신금성 세무기장.</li>
+            <li>2022년 흑자(1억5천): 2021년 계약→2022년 완결 수익인식. 회계기준상 적법.</li>
+            <li>2023년 적자(19억): 2022년 계약→2023년 완결 비용확정.</li>
+            <li>허위·부실기재 요구 없었음. 영업이익→손실 변경 요구 없었음.</li>
+            <li>계좌 출금초과 6억3천 ≠ 재무제표 (건설업 회계특성 — 수익인식 시점 차이).</li>
+            <li>재공품 10억7천: 당기비용 이연, 다음기 이월.</li>
+          </ul>
+          <h4>공소장 변경 허가</h4>
+          <ul>
+            <li>채무자회생법 652조 2호 정식 추가 — 법인 대표이사 처벌 근거 확보.</li>
+            <li>피고인 측 기존 입장 유지.</li>
+          </ul>
+          <h4>증거서류 조사</h4>
+          <ul>
+            <li>순번3: 거래처 장부 — 납품 후 미결제</li>
+            <li>순번5: 파산신청서 — 손실에도 이익 기재 자인</li>
+            <li>순번26: 김진태 회계사 — "6억 손실인데 이익으로" 진술</li>
+            <li>순번31·32: 계좌 — 출금초과 6.3억</li>
+            <li>순번37·38: 다른 거래처 사기 유죄 확정판결</li>
+          </ul>
+          <h4>구형·변론·선고</h4>
+          <ul>
+            <li>검사 구형: <strong>징역 1년 6개월</strong></li>
+            <li>변호인: 팬데믹, 관급 단가고정, 고의없음, 공탁노력</li>
+            <li>선고: <strong>2026.08.13 (수) 14:00</strong></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="hearing-card">
+        <div class="h-header" onclick="toggleH(this)">
+          <span class="h-num">3차</span>
+          <span class="h-date">2026.05.12</span>
+          <span class="h-title">김준석 (BTR) 증인신문</span>
+          <span class="h-tog">▶</span>
+        </div>
+        <div class="h-body">
+          <h4>증인신문 요지</h4>
+          <ul>
+            <li>BTR 수성 김준석 (1983.04.11) 증인 출석.</li>
+            <li>엘리베이터 설치공사: 전체 건물 준공 후 잔금 결제 시 수익 확정.</li>
+            <li>계약금 30%, 잔금 70% — 준공까지 통상 1년 이상.</li>
+            <li>이상원 회계사 다음 기 증인 채택.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="hearing-card">
+        <div class="h-header" onclick="toggleH(this)">
+          <span class="h-num">2차</span>
+          <span class="h-date">2026.04.09</span>
+          <span class="h-title">재판장 652조 누락 지적</span>
+          <span class="h-tog">▶</span>
+        </div>
+        <div class="h-body">
+          <h4>주요 사항</h4>
+          <ul>
+            <li>재판장 직접 채무자회생법 652조 누락 지적.</li>
+            <li>검사 측 공소장 변경 검토 지시.</li>
+            <li>변호인: 공소사실 변경 불가 주장.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="hearing-card">
+        <div class="h-header" onclick="toggleH(this)">
+          <span class="h-num">1차</span>
+          <span class="h-date">2026.03.10</span>
+          <span class="h-title">피고인 진술 · 변호인 기본 입장</span>
+          <span class="h-tog">▶</span>
+        </div>
+        <div class="h-body">
+          <h4>피고인 입장</h4>
+          <ul>
+            <li>사실관계 인정, 사기 고의 부인.</li>
+            <li>4회에 걸쳐 1억8천 일부 변제.</li>
+          </ul>
+          <h4>변호인 주장</h4>
+          <ul>
+            <li>채무자회생법 위반: 수사 부실 (이상원 회계사 미조사).</li>
+            <li>이상원 회계사 증인 신청.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 문서함 -->
+    <div id="page-sg-docs" class="page">
+      <div class="doc-filter">
+        <button class="active" onclick="filterDoc(this,'all')">전체</button>
+        <button onclick="filterDoc(this,'criminal')">형사</button>
+        <button onclick="filterDoc(this,'civil')">민사</button>
+        <button onclick="filterDoc(this,'ref')">참고</button>
+      </div>
+      <div class="doc-list" id="docList">
+
+        <!-- 형사 공판 녹취 텍스트 -->
+        <div class="doc-item" data-cat="criminal" data-file="docs/criminal/신금성_4차공판_텍스트_26.06.24.txt" data-type="txt" onclick="openDoc(this)">
+          <span class="doc-icon">⭐</span>
+          <div class="doc-name">4차 공판 기록 (2026.06.24)</div>
+          <span class="doc-badge db-criminal">형사</span>
+          <div class="doc-meta">TXT</div>
+        </div>
+        <div class="doc-item" data-cat="criminal" data-file="docs/criminal/신금성 3차공판(2026고단2370) 텍스트 추출_26.05.12.txt" data-type="txt" onclick="openDoc(this)">
+          <span class="doc-icon">🎙️</span>
+          <div class="doc-name">3차 공판 녹취 텍스트 (2026.05.12)</div>
+          <span class="doc-badge db-criminal">형사</span>
+          <div class="doc-meta">TXT</div>
+        </div>
+        <div class="doc-item" data-cat="criminal" data-file="docs/criminal/신금성 2차공판(2026고단2370 텍스트 추출_26.04.09.txt" data-type="txt" onclick="openDoc(this)">
+          <span class="doc-icon">🎙️</span>
+          <div class="doc-name">2차 공판 녹취 텍스트 (2026.04.09)</div>
+          <span class="doc-badge db-criminal">형사</span>
+          <div class="doc-meta">TXT</div>
+        </div>
+        <div class="doc-item" data-cat="criminal" data-file="docs/criminal/신금성 1차공판(2026고단2370 텍스트 추출_26.03.10.txt" data-type="txt" onclick="openDoc(this)">
+          <span class="doc-icon">🎙️</span>
+          <div class="doc-name">1차 공판 녹취 텍스트 (2026.03.10)</div>
+          <span class="doc-badge db-criminal">형사</span>
+          <div class="doc-meta">TXT</div>
+        </div>
+
+        <!-- 형사 PDF -->
+        <div class="doc-item" data-cat="criminal" data-file="docs/criminal/신금성 공소장, 공소장변경허가신청서_비티알수성(조용래).pdf" data-type="pdf" onclick="openDoc(this)">
+          <span class="doc-icon">📄</span>
+          <div class="doc-name">공소장 · 공소장변경허가신청서</div>
+          <span class="doc-badge db-criminal">형사</span>
+          <div class="doc-meta">PDF · 핵심</div>
+        </div>
+        <div class="doc-item" data-cat="criminal" data-file="docs/criminal/250430_형사고소장.pdf" data-type="pdf" onclick="openDoc(this)">
+          <span class="doc-icon">🔴</span>
+          <div class="doc-name">형사고소장 (2025.04.30)</div>
+          <span class="doc-badge db-criminal">형사</span>
+          <div class="doc-meta">PDF</div>
+        </div>
+        <div class="doc-item" data-cat="criminal" data-file="docs/criminal/250430_고소장_수정사항 반영.pdf" data-type="pdf" onclick="openDoc(this)">
+          <span class="doc-icon">📄</span>
+          <div class="doc-name">고소장 수정본 (2025.04.30)</div>
+          <span class="doc-badge db-criminal">형사</span>
+          <div class="doc-meta">PDF</div>
+        </div>
+        <div class="doc-item" data-cat="criminal" data-file="docs/criminal/신금성 불구속구공판 통지서(2026년형제746호)_26.01.29.pdf" data-type="pdf" onclick="openDoc(this)">
+          <span class="doc-icon">📋</span>
+          <div class="doc-name">불구속구공판 통지서 (2026.01.29)</div>
+          <span class="doc-badge db-criminal">형사</span>
+          <div class="doc-meta">PDF</div>
+        </div>
+        <div class="doc-item" data-cat="criminal" data-file="docs/criminal/신금성 수사결과 통지서(제 2025-00186호)_25.12.30.pdf" data-type="pdf" onclick="openDoc(this)">
+          <span class="doc-icon">📄</span>
+          <div class="doc-name">수사결과 통지서 (2025.12.30)</div>
+          <span class="doc-badge db-criminal">형사</span>
+          <div class="doc-meta">PDF</div>
+        </div>
+        <div class="doc-item" data-cat="criminal" data-file="docs/criminal/신금성 3차공판 증인신문 예상답변_26.05.12.pdf" data-type="pdf" onclick="openDoc(this)">
+          <span class="doc-icon">📝</span>
+          <div class="doc-name">3차 공판 증인신문 예상답변</div>
+          <span class="doc-badge db-criminal">형사</span>
+          <div class="doc-meta">PDF</div>
+        </div>
+        <div class="doc-item" data-cat="criminal" data-file="docs/criminal/고소대리인 선임신고서.pdf" data-type="pdf" onclick="openDoc(this)">
+          <span class="doc-icon">📄</span>
+          <div class="doc-name">고소대리인 선임신고서</div>
+          <span class="doc-badge db-criminal">형사</span>
+          <div class="doc-meta">PDF</div>
+        </div>
+
+        <!-- 민사 PDF -->
+        <div class="doc-item" data-cat="civil" data-file="docs/civil/갑 제9호증 파산신청서.pdf" data-type="pdf" onclick="openDoc(this)">
+          <span class="doc-icon">📄</span>
+          <div class="doc-name">갑 제9호증 파산신청서 ★핵심</div>
+          <span class="doc-badge db-civil">민사</span>
+          <div class="doc-meta">PDF</div>
+        </div>
+        <div class="doc-item" data-cat="civil" data-file="docs/civil/갑 제4호증 판결문(신금성).pdf" data-type="pdf" onclick="openDoc(this)">
+          <span class="doc-icon">📄</span>
+          <div class="doc-name">갑 제4호증 판결문</div>
+          <span class="doc-badge db-civil">민사</span>
+          <div class="doc-meta">PDF</div>
+        </div>
+        <div class="doc-item" data-cat="civil" data-file="docs/civil/갑 제6호증 파산선고결정.pdf" data-type="pdf" onclick="openDoc(this)">
+          <span class="doc-icon">📄</span>
+          <div class="doc-name">갑 제6호증 파산선고결정</div>
+          <span class="doc-badge db-civil">민사</span>
+          <div class="doc-meta">PDF · 2024.11.28</div>
+        </div>
+        <div class="doc-item" data-cat="civil" data-file="docs/civil/갑 제13호증의 1 각 발주서.PDF" data-type="pdf" onclick="openDoc(this)">
+          <span class="doc-icon">📋</span>
+          <div class="doc-name">갑 제13호증의 1 발주서</div>
+          <span class="doc-badge db-civil">민사</span>
+          <div class="doc-meta">PDF · 핵심</div>
+        </div>
+        <div class="doc-item" data-cat="civil" data-file="docs/civil/갑 제13호증의 2 각 이메일.PDF" data-type="pdf" onclick="openDoc(this)">
+          <span class="doc-icon">📧</span>
+          <div class="doc-name">갑 제13호증의 2 이메일</div>
+          <span class="doc-badge db-civil">민사</span>
+          <div class="doc-meta">PDF</div>
+        </div>
+        <div class="doc-item" data-cat="civil" data-file="docs/civil/갑 제1호증 법인등기(신금성).pdf" data-type="pdf" onclick="openDoc(this)">
+          <span class="doc-icon">🏢</span>
+          <div class="doc-name">갑 제1호증 법인등기(신금성)</div>
+          <span class="doc-badge db-civil">민사</span>
+          <div class="doc-meta">PDF</div>
+        </div>
+        <div class="doc-item" data-cat="civil" data-file="docs/civil/갑 제2호증 법인등기(창성).pdf" data-type="pdf" onclick="openDoc(this)">
+          <span class="doc-icon">🏢</span>
+          <div class="doc-name">갑 제2호증 법인등기(창성)</div>
+          <span class="doc-badge db-civil">민사</span>
+          <div class="doc-meta">PDF</div>
+        </div>
+        <div class="doc-item" data-cat="civil" data-file="docs/civil/갑 제14호증 등기사항전부증명서(도남동주택).pdf" data-type="pdf" onclick="openDoc(this)">
+          <span class="doc-icon">🏠</span>
+          <div class="doc-name">갑 제14호증 등기(도남동주택)</div>
+          <span class="doc-badge db-civil">민사</span>
+          <div class="doc-meta">PDF</div>
+        </div>
+        <div class="doc-item" data-cat="civil" data-file="docs/civil/갑 제15호증 승강기정보열람(도남동주택).pdf" data-type="pdf" onclick="openDoc(this)">
+          <span class="doc-icon">🛗</span>
+          <div class="doc-name">갑 제15호증 승강기정보(도남동)</div>
+          <span class="doc-badge db-civil">민사</span>
+          <div class="doc-meta">PDF</div>
+        </div>
+        <div class="doc-item" data-cat="civil" data-file="docs/civil/갑 제5호증 나의사건검색(신금성 파산).pdf" data-type="pdf" onclick="openDoc(this)">
+          <span class="doc-icon">📋</span>
+          <div class="doc-name">갑 제5호증 나의사건검색(파산)</div>
+          <span class="doc-badge db-civil">민사</span>
+          <div class="doc-meta">PDF</div>
+        </div>
+
+        <!-- 참고자료 -->
+        <div class="doc-item" data-cat="ref" data-file="docs/references/발주서.pdf" data-type="pdf" onclick="openDoc(this)">
+          <span class="doc-icon">📄</span>
+          <div class="doc-name">발주서 (BTR→신금성)</div>
+          <span class="doc-badge db-ref">참고</span>
+          <div class="doc-meta">PDF</div>
+        </div>
+        <div class="doc-item" data-cat="ref" data-file="docs/references/법인등기부(대경승강기).pdf" data-type="pdf" onclick="openDoc(this)">
+          <span class="doc-icon">🏢</span>
+          <div class="doc-name">법인등기부(대경승강기)</div>
+          <span class="doc-badge db-ref">참고</span>
+          <div class="doc-meta">PDF</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 관계자 -->
+    <div id="page-sg-persons" class="page">
+      <div class="person-grid">
+        <div class="person-card" style="border-color:var(--red)">
+          <h3 style="color:var(--red)">조용래</h3>
+          <div class="role">피고인 / 신금성 대표이사</div>
+          <ul>
+            <li>📅 1972.06.17생</li>
+            <li>⚖️ 사기 + 652조 2호</li>
+            <li>💰 BTR 피해 3.45억</li>
+            <li>📍 선고 2026.08.13</li>
+          </ul>
+        </div>
+        <div class="person-card" style="border-color:var(--green)">
+          <h3 style="color:var(--green)">BTR 수성</h3>
+          <div class="role">피해자 (고소인)</div>
+          <ul>
+            <li>👤 김준석 (증인 3차 출석)</li>
+            <li>⚖️ 천동준 변호사</li>
+            <li>📋 추가 피해업체 5~10개</li>
+          </ul>
+        </div>
+        <div class="person-card" style="border-color:var(--purple)">
+          <h3 style="color:var(--purple)">이상원</h3>
+          <div class="role">회계사 / 채용회계법인 이사</div>
+          <ul>
+            <li>📅 1983.04.11생</li>
+            <li>🏢 2022.08~ 세무기장</li>
+            <li>✅ 4차 공판 증인</li>
+            <li>❌ 허위기재 요구 없음</li>
+          </ul>
+        </div>
+        <div class="person-card" style="border-color:var(--yellow)">
+          <h3 style="color:var(--yellow)">김진태</h3>
+          <div class="role">파산신청 담당 회계사</div>
+          <ul>
+            <li>📄 파산신청서 작성</li>
+            <li>💬 "6억 손실인데 이익으로"</li>
+          </ul>
+        </div>
+        <div class="person-card">
+          <h3>창성 / 대경승강기</h3>
+          <div class="role">신금성 연관 법인</div>
+          <ul>
+            <li>👤 며느리 김해선 명의</li>
+            <li>🏢 도남동 912-5 동일주소</li>
+            <li>👥 인력 26명 이전</li>
+            <li>💰 엠티케이 1.25억</li>
+          </ul>
+        </div>
+        <div class="person-card">
+          <h3>천동준 변호사</h3>
+          <div class="role">BTR 측 선임 변호사</div>
+          <ul>
+            <li>⚖️ 피고인 측 변호</li>
+            <li>📋 최후 변론 완료</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 전략 메모 -->
+    <div id="page-sg-strategy" class="page">
+      <div class="card" style="border-color:var(--accent)">
+        <h2>⚡ 핵심 공격 전략</h2>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="background:#0d1117;padding:10px;border-radius:6px;border-left:3px solid var(--red)">
+            <div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:4px">① 파산결의 후 발주 계속 — 변제의사 없음의 직접 증거</div>
+            <div style="font-size:13px;color:#adb5bd">2023.12.27 파산결의 → 12.21 도남동 자택 엘리베이터 발주 → 24.01.17 최종 발주.</div>
+          </div>
+          <div style="background:#0d1117;padding:10px;border-radius:6px;border-left:3px solid var(--yellow)">
+            <div style="font-size:11px;font-weight:700;color:var(--yellow);margin-bottom:4px">② 채무자회생법 652조 2호 — 4차 공판에서 공소장 변경 허가 완료</div>
+            <div style="font-size:13px;color:#adb5bd">법인 대표이사 처벌 근거 확보. 재판장이 2차 공판에서 직접 지적.</div>
+          </div>
+          <div style="background:#0d1117;padding:10px;border-radius:6px;border-left:3px solid var(--purple)">
+            <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:4px">③ 창성·대경승강기 편파행위 — 재산 은닉</div>
+            <div style="font-size:13px;color:#adb5bd">인력 26명 + 설비 무상이전 + 엠티케이 1.25억. 며느리 명의. 주소 동일.</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>📅 선고 전 남은 과제</h2>
+        <ul style="list-style:none;font-size:13px;color:#adb5bd">
+          <li style="padding:5px 0;border-bottom:1px solid #21262d">□ 피해자 측 추가 의견서 참고자료 제출</li>
+          <li style="padding:5px 0;border-bottom:1px solid #21262d">□ 추가 피해업체 5~10개 채권자 목록 정리</li>
+          <li style="padding:5px 0">□ 창성·대경승강기 자산 추가 추적</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>📊 재무제표 논점 (4차 공판 확정)</h2>
+        <table>
+          <tr><th>구분</th><th style="text-align:right">2022년</th><th style="text-align:right">2023년</th></tr>
+          <tr><td>재무제표 기재</td>
+              <td style="text-align:right;color:var(--green)">+1억5천 흑자</td>
+              <td style="text-align:right;color:var(--red)">-19억 적자</td></tr>
+          <tr><td>실질 현금흐름</td>
+              <td style="text-align:right;color:var(--red)">-6.3억 출금초과</td>
+              <td style="text-align:right;color:var(--muted)">-</td></tr>
+          <tr><td>판단</td>
+              <td style="text-align:right;color:var(--yellow)">회계기준 적법</td>
+              <td style="text-align:right;color:var(--red)">대규모 손실 확정</td></tr>
+        </table>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px">이상원 회계사 4차 공판 증언: "회사에서 받은 자료로 처리. 잘못된 자료 제출 없었음."</div>
+      </div>
+    </div>
+
+    <!-- 검색 페이지 -->
+    <div id="page-search-page" class="page">
+      <div class="card">
+        <h2>🔍 전체 검색</h2>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="sInput2" style="flex:1;background:#0d1117;border:1px solid var(--border);
+            color:var(--text);padding:8px 12px;border-radius:6px;font-size:14px;outline:none"
+            placeholder="키워드 입력..." onkeydown="if(event.key==='Enter')doSearch2()">
+          <button onclick="doSearch2()" style="background:var(--accent);color:#fff;border:none;
+            padding:8px 16px;border-radius:6px;font-size:14px;cursor:pointer">검색</button>
+        </div>
+      </div>
+      <div id="sr2"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const DOCS = [
+  {t:'4차 공판 기록 (2026.06.24)',b:'이상원 회계사 증인신문 공소장변경 652조 구형 1년6개월 선고 2026.08.13',p:'sg-hearings'},
+  {t:'3차 공판 — 김준석 증인신문',b:'BTR 수성 김준석 증인 출석 엘리베이터 설치공사 수익인식 잔금 준공',p:'sg-hearings'},
+  {t:'2차 공판 — 652조 누락 지적',b:'재판장 채무자회생법 652조 공소장변경 논의',p:'sg-hearings'},
+  {t:'1차 공판 — 피고인 진술',b:'조용래 사실관계 인정 사기 고의 부인 이상원 회계사 증인 신청',p:'sg-hearings'},
+  {t:'이상원 회계사',b:'채용회계법인 이사 2022 세무기장 재무제표 적법 허위기재 없음 1983.04.11',p:'sg-persons'},
+  {t:'조용래 피고인',b:'신금성엘리베이터 대표이사 1972.06.17 파산결의 발주 사기 652조',p:'sg-persons'},
+  {t:'창성 대경승강기',b:'며느리 김해선 명의 도남동 912-5 인력 26명 설비 무상이전 엠티케이 1.25억',p:'sg-persons'},
+  {t:'파산신청서',b:'6억 손실 이익으로 기재 자인 김진태 회계사',p:'sg-docs'},
+  {t:'공소장 변경',b:'채무자회생법 652조 2호 법인 대표이사 처벌 4차 공판 허가',p:'sg-strategy'},
+];
+
+function showPage(id, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pg=document.getElementById('page-'+id);
+  if(pg) pg.classList.add('active');
+  if(el) el.classList.add('active');
+  const titles={home:'홈','sg-overview':'신금성 — 사건 개요','sg-timeline':'신금성 — 시계열','sg-hearings':'신금성 — 공판 기록','sg-docs':'신금성 — 문서함','sg-persons':'신금성 — 관계자','sg-strategy':'신금성 — 전략 메모','search-page':'전체 검색'};
+  document.getElementById('page-title').textContent=titles[id]||id;
+}
+function toggleProj(el){
+  el.classList.toggle('open');
+  el.nextElementSibling.classList.toggle('open');
+}
+function toggleH(h){
+  const b=h.nextElementSibling;
+  const t=h.querySelector('.h-tog');
+  b.classList.toggle('open');
+  t.textContent=b.classList.contains('open')?'▼':'▶';
+}
+function filterDoc(btn,cat){
+  document.querySelectorAll('.doc-filter button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.doc-item').forEach(d=>{
+    d.style.display=(cat==='all'||d.dataset.cat===cat)?'flex':'none';
+  });
+}
+
+// 문서 뷰어
+function openDoc(el){
+  const file=el.dataset.file;
+  const type=el.dataset.type;
+  const name=el.querySelector('.doc-name').textContent;
+  const ov=document.getElementById('doc-viewer-overlay');
+  const frame=document.getElementById('doc-viewer-frame');
+  const txt=document.getElementById('doc-viewer-txt');
+  const dl=document.getElementById('doc-viewer-dl');
+  document.getElementById('doc-viewer-title').textContent=name;
+  dl.href=file; dl.download=file.split('/').pop();
+  ov.classList.add('open');
+  if(type==='pdf'){
+    frame.style.display='block'; txt.style.display='none';
+    frame.src=file+'#toolbar=1&navpanes=0&scrollbar=1';
+  } else {
+    frame.style.display='none'; txt.style.display='block';
+    txt.textContent='로딩 중...';
+    fetch(file).then(r=>r.text()).then(t=>{ txt.textContent=t; }).catch(()=>{ txt.textContent='파일을 불러올 수 없습니다.'; });
+  }
+}
+function closeViewer(e){
+  if(e.target===document.getElementById('doc-viewer-overlay'))
+    document.getElementById('doc-viewer-overlay').classList.remove('open');
+}
+function closeViewerBtn(){
+  document.getElementById('doc-viewer-overlay').classList.remove('open');
+  document.getElementById('doc-viewer-frame').src='';
+  document.getElementById('doc-viewer-txt').textContent='';
+}
+
+// 검색
+function _search(q){
+  return DOCS.filter(d=>d.t.includes(q)||d.b.includes(q));
+}
+function doSearch(){
+  const q=document.getElementById('sInput').value.trim();
+  if(!q)return;
+  showPage('search-page',null);
+  renderSearch(q,'sr2');
+  document.getElementById('sInput2').value=q;
+}
+function doSearch2(){
+  const q=document.getElementById('sInput2').value.trim();
+  if(!q)return;
+  renderSearch(q,'sr2');
+}
+function renderSearch(q,targetId){
+  const res=_search(q);
+  const el=document.getElementById(targetId);
+  if(!el)return;
+  el.innerHTML=`<div style="font-size:13px;font-weight:700;margin-bottom:10px">"${q}" — ${res.length}건</div>`+
+    res.map(r=>`<div class="sr-item" onclick="showPage('${r.p}',null)">
+      <h4>${r.t.replace(new RegExp(q,'gi'),m=>'<mark>'+m+'</mark>')}</h4>
+      <p>${r.b.replace(new RegExp(q,'gi'),m=>'<mark>'+m+'</mark>')}</p>
+    </div>`).join('');
+}
+</script>
+</body>
+</html>
