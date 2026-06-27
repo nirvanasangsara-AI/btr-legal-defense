@@ -1,0 +1,12 @@
+{
+  "name": "btr-legal-defense",
+  "version": "1.0.0",
+  "description": "BTR Legal Defense",
+  "scripts": {
+    "test:visual": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.45.0",
+    "@types/node": "^20.0.0"
+  }
+}
